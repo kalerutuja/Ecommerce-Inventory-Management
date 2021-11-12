@@ -1,0 +1,262 @@
+/*
+	Team 12
+	DMDD - Project
+*/
+Use Rutuja_Project;
+IF DB_ID('Rutuja_Project') IS NULL
+BEGIN
+	PRINT 'Creating Databse';
+	CREATE DATABASE Rutuja_Project;
+END
+ELSE
+BEGIN
+	PRINT 'Database already exists';
+END;
+
+--Setting database context
+USE Rutuja_Project;
+
+
+
+-- Stored procedure to drop all tables
+DROP PROCEDURE IF EXISTS DELETE_ALL_TABLES;
+
+
+
+CREATE PROCEDURE DELETE_ALL_TABLES AS
+BEGIN
+	DROP TABLE IF EXISTS Membership; 
+	DROP TABLE IF EXISTS OrderStatus;
+	DROP TABLE IF EXISTS ProductCategory;
+	DROP TABLE IF EXISTS [Return];
+	DROP TABLE IF EXISTS Payment;
+	DROP TABLE IF EXISTS [Order];
+	DROP TABLE IF EXISTS CustomerAddress;
+	DROP TABLE IF EXISTS Customer;
+	DROP TABLE IF EXISTS [Address];
+	DROP TABLE IF EXISTS Promotion;
+	DROP TABLE IF EXISTS OrderProduct;
+	DROP TABLE IF EXISTS ProductTax;
+	DROP TABLE IF EXISTS SellerProduct; 
+	DROP TABLE IF EXISTS Product; 
+	DROP TABLE IF EXISTS Disbursment;
+	DROP TABLE IF EXISTS Seller;
+	DROP TABLE IF EXISTS Feedback;
+	DROP TABLE IF EXISTS SellerAddress;
+END;
+
+
+
+EXEC DELETE_ALL_TABLES;
+
+
+
+-- Creating tables
+
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Address'))
+BEGIN
+	CREATE TABLE Address( 
+		AddressID INT NOT NULL PRIMARY KEY,
+		Street VARCHAR(95),
+		City VARCHAR(30),
+		State VARCHAR(2),
+		Zipcode INT,
+		Region VARCHAR(30),
+		Country VARCHAR(30))
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'SellerAddress'))
+BEGIN
+	CREATE TABLE SellerAddress(
+		  AddressID INT NOT NULL PRIMARY KEY,
+		  Street VARCHAR(95) NOT NULL,
+		  City VARCHAR(30) NOT NULL,
+		  State VARCHAR(2) NOT NULL,
+		  ZipCode INT NOT NULL,
+		  Region VARCHAR(30) NOT NULL,
+		  Country VARCHAR(30) NOT NULL)
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'ProductCategory'))
+BEGIN 
+     CREATE TABLE ProductCategory (
+		ProductCategoryID int IDENTITY NOT NULL Primary key,
+		ProductCategory Varchar(60) UNIQUE)
+END; 
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Customer'))
+BEGIN
+    CREATE TABLE Customer ( 
+		CustomerID INT PRIMARY KEY,
+		FirstName VARCHAR(45),
+		LastName VARCHAR(45),
+		DOB DATE,
+		Email VARCHAR(255) NOT NULL,
+		PhoneNumber BIGINT NOT NULL)
+END;
+
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Seller'))
+BEGIN
+	CREATE TABLE Seller (
+		SellerId INT NOT NULL PRIMARY KEY,
+		OrganizationName VARCHAR(255) NOT NULL,
+		Email VARCHAR(255) NOT NULL,
+		PhoneNumber BIGINT NOT NULL,
+		SellerAddressId INT FOREIGN KEY REFERENCES SellerAddress(AddressId))
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Product'))
+BEGIN 
+	CREATE TABLE Product
+	(
+	ProductID int IDENTITY NOT NULL Primary Key, 
+	ProductName Varchar(255) NOT NULL,
+	UnitPrice Money NOT NULL,
+	Quantity int,
+	ProductCategoryID int NOT NULL Foreign Key(ProductCategoryId) References ProductCategory(ProductCategoryID) 
+	)
+END; 
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'SellerProduct'))
+BEGIN
+	CREATE TABLE SellerProduct(
+    SellerID INT NOT NULL,
+    ProductID INT NOT NULL,
+    PRIMARY KEY(SellerID, ProductID),
+    FOREIGN KEY(SellerID) REFERENCES Seller(SellerID),
+    FOREIGN KEY(ProductID) REFERENCES Product(ProductID))
+END;
+select * from SellerProduct sp 
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Disbursment'))
+BEGIN
+	CREATE TABLE Disbursment(
+		DisbursmentID INT NOT NULL PRIMARY KEY,
+		Amount MONEY NOT NULL,
+		BankName VARCHAR(45) NOT NULL,
+		DisbursmentDate DATETIME NOT NULL,
+		SellerID INT NOT NULL
+		FOREIGN KEY(SELLERID) REFERENCES Seller(SellerID))
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'OrderStatus'))
+BEGIN
+	CREATE TABLE OrderStatus (
+		OrderID INT NOT NULL PRIMARY KEY,
+		CustomerID INT NOT NULL,
+		Status VARCHAR(10),
+		FOREIGN KEY(CustomerID) REFERENCES Customer(CustomerID),
+		CONSTRAINT STATUS CHECK (STATUS IN ('Delivered','Shipped','Processing','Cancelled')))
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'CustomerAddress'))
+BEGIN
+	CREATE TABLE CustomerAddress (
+		CustomerID INT NOT NULL,
+		AddressID INT NOT NULL,
+		CONSTRAINT Customer_PK PRIMARY KEY(CustomerID, AddressID),
+		CONSTRAINT Customer_FK1 FOREIGN KEY(AddressID) REFERENCES Address(AddressID),
+		CONSTRAINT Customer_FK2 FOREIGN KEY(CustomerID) REFERENCES Customer(CustomerID))
+END;
+
+select * from CustomerAddress
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Return'))
+BEGIN
+	CREATE TABLE [RETURN] (
+		OrderID INT NOT NULL IDENTITY PRIMARY KEY,
+		ProductID INT NOT NULL,
+		TYPE VARCHAR(15),
+		REASON VARCHAR (255),
+		CONSTRAINT OrderStatus_FK FOREIGN KEY(ProductID) REFERENCES Product(ProductID),
+		CONSTRAINT TYPE CHECK(TYPE IN ('Exchange', 'Cancellation')))
+END;
+
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'ProductTax'))
+BEGIN 
+	CREATE TABLE ProductTax 
+	(
+	ProductID int NOT NULL Primary Key References Product(ProductID),
+	TaxAmount Money NOT NULL
+	) 
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Promotion'))
+BEGIN 
+	CREATE TABLE Promotion
+	(
+	PromtionID int IDENTITY NOT NULL Primary Key,
+	ProductID int NOT NULL Foreign Key (ProductID) References Product(ProductID),
+	Discount Decimal NOT NULL
+	)
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Feedback'))
+BEGIN 
+	CREATE TABLE Feedback 
+	(
+	FeedbackID int IDENTITY NOT NULL Primary Key,
+	SellerId int NOT NULL Foreign Key(SellerId) References Seller(SellerID),
+	ProductID int NOT NULL Foreign key(ProductID) References Product(ProductID),
+	Rating int,
+	Comment Varchar(255)
+	) 
+END;  
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Order'))
+BEGIN 
+	CREATE TABLE [ORDER]
+	(
+	ORDERID INT IDENTITY NOT NULL PRIMARY KEY,
+	CUSTOMERID INT NOT NULL,
+	AMOUNT MONEY NOT NULL,
+	ORDERDATE DATETIME NOT NULL,
+	FOREIGN KEY (CUSTOMERID) REFERENCES CUSTOMER(CUSTOMERID))
+END; 
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'OrderProduct'))
+BEGIN 
+	CREATE TABLE ORDERPRODUCT
+	(
+	SalesOrderID INT IDENTITY,
+	ORDERID INT NOT NULL UNIQUE,
+	PRODUCTID INT NOT NULL,
+	QUANTITY INT NOT NULL,
+	Constraint OrderProduct_PK PRIMARY KEY(ORDERID,PRODUCTID),
+	Constraint OrderProduct_FK1 Foreign KEY(ORDERID) REFERENCES [ORDER](ORDERID),
+	Constraint OrderProduct_FK2 Foreign KEY(PRODUCTID) REFERENCES PRODUCT(PRODUCTID)
+	)
+END;
+
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'Payment'))
+BEGIN 
+	Create Table Payment 
+	( 
+	PaymentID INT NOT NULL IDENTITY Primary key, 
+	OrderID int NOT NULL Foreign Key(OrderID) References [Order](OrderID), 
+	BillingAmount Money NOT NULL,
+	Status varchar(50) NOt NULL, 
+	PaymentMode varchar(50) NOT NULL 
+	)
+END;
+
+IF (NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND  TABLE_NAME = 'membership'))
+BEGIN 
+	Create table Membership 
+	(
+	MembershipId int NOT NULL IDENTITY Primary Key,
+	CustomerId int NOT NULL Foreign Key(CustomerId) References Customer(CustomerId),
+	PlanType varchar(10),
+	PlanExpiry Date
+	)
+End
+
+PRINT 'Tables created successfully';
+
+SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'
+
+--------------------------------------------------------------------------
